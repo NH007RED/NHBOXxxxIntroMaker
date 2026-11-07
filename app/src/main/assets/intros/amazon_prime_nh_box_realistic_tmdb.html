@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NH BOX - Ultra-Realistic Amazon Prime Video Intro (TMDB + HTML2Video)</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #02070E;
+  --panel: #071222;
+  --border: #152C4E;
+  --prime: #00A8E1;
+  --text: #F2F8FF;
+  --muted: #8AA2C2;
+  box-sizing: border-box;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 14px 36px;
+}
+.wrap { width: 100%; max-width: 1120px; display: flex; flex-direction: column; gap: 12px; }
+.header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.title-group h1 { font-size: 21px; font-weight: 900; display: flex; align-items: center; gap: 10px; }
+.badge { background: linear-gradient(135deg, #00A8E1, #0066B2); color: #fff; font-size: 11px; padding: 3px 9px; border-radius: 4px; letter-spacing: 1px; box-shadow: 0 0 15px rgba(0,168,225,0.6); }
+.tmdb-badge { background: #01b4e4; color: #000; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 4px; }
+.desc { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+.canvas-holder {
+  width: 100%; background: #000; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.92), 0 0 45px rgba(0,168,225,0.2);
+}
+canvas#cv { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; background: #000; }
+.controls-bar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 10px; background: var(--panel); border: 1px solid var(--border); padding: 10px 14px; border-radius: 10px;
+}
+.btn-cluster, .toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+button, select {
+  font: 600 12.5px inherit; padding: 8px 13px; border-radius: 7px; border: 1px solid #1e3b64;
+  background: #0b1b32; color: #fff; cursor: pointer; transition: 0.15s;
+}
+button:hover, select:hover { border-color: #00A8E1; background: #132c4e; }
+button.primary { background: linear-gradient(135deg, #00A8E1, #0066B2); border-color: #4AD0FF; box-shadow: 0 0 14px rgba(0,168,225,0.45); }
+.toggles label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.status-bar { display: flex; justify-content: space-between; font: 12px ui-monospace, monospace; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="title-group">
+      <h1>NH BOX <span class="badge">PRIME VIDEO ORIGINAL</span> <span class="tmdb-badge" id="tmdbSt">TMDB API: Connecting...</span></h1>
+      <p class="desc">3D Orbiting TMDB Poster Carousel • True 3D Beveled "NH BOX" • Exact SVG-Calibrated Prime Smile Arrow • Orchestral Chime.</p>
+    </div>
+  </div>
+  <div class="canvas-holder">
+    <canvas id="cv" width="1920" height="1080"></canvas>
+  </div>
+  <div class="controls-bar">
+    <div class="btn-cluster">
+      <button id="pv" class="primary">▶ Preview Chalao</button>
+      <button id="btnReplay">⟲ Replay Smile Arrow</button>
+      <select id="scSel"></select>
+      <button id="btnFs">⛶ Fullscreen</button>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="cap" checked> Subtitles</label>
+      <label><input type="checkbox" id="vo"> Voice</label>
+      <label><input type="checkbox" id="sf" checked> Prime Sonic SFX</label>
+      <button id="dl">⬇ SFX Track (WAV)</button>
+    </div>
+  </div>
+  <div class="status-bar">
+    <span id="st">Status: Ready. Click Preview.</span>
+    <span id="timing">0.00s / 8.50s [60 FPS]</span>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   1. LIVE TMDB API POSTER FETCHER (API KEY: 2e211dfda888f7cc55ce433d743f9bc3)
+   ========================================================================== */
+var TMDB_KEY = "2e211dfda888f7cc55ce433d743f9bc3";
+var TMDB_POSTERS = [];
+var tmdbLoadedCount = 0;
+
+function fetchTMDBPosters() {
+  var stBadge = document.getElementById("tmdbSt");
+  fetch("https://api.themoviedb.org/3/movie/popular?api_key=" + TMDB_KEY + "&page=1")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data || !data.results) return;
+      var items = data.results.slice(0, 16);
+      items.forEach(function(item) {
+        if (!item.poster_path) return;
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function() {
+          TMDB_POSTERS.push(img);
+          tmdbLoadedCount++;
+          if (stBadge) stBadge.textContent = "TMDB Live: " + tmdbLoadedCount + " Real Posters Ready ✓";
+          if (!isPlaying) frameAt(prevLiveT);
+        };
+        img.onerror = function() {
+          var img2 = new Image();
+          img2.onload = function() {
+            TMDB_POSTERS.push(img2);
+            tmdbLoadedCount++;
+            if (stBadge) stBadge.textContent = "TMDB Live: " + tmdbLoadedCount + " Posters Ready ✓";
+            if (!isPlaying) frameAt(prevLiveT);
+          };
+          img2.src = "https://image.tmdb.org/t/p/w500" + item.poster_path;
+        };
+        img.src = "https://image.tmdb.org/t/p/w500" + item.poster_path + "?prime=1";
+      });
+    })
+    .catch(function() {
+      if (stBadge) stBadge.textContent = "TMDB Offline Fallback Active";
+    });
+}
+fetchTMDBPosters();
+
+/* ==========================================================================
+   2. HTML2VIDEO BRIDGE CONTRACT & TIMELINE
+   ========================================================================== */
+var SC = [
+  { "min": 4.0, "vo": "NH BOX Original Series presents..." },
+  { "min": 4.5, "vo": "Watch the biggest blockbusters now on NH BOX." }
+];
+var S = SC;
+
+var cv = document.getElementById("cv"), c = cv.getContext("2d");
+var W = 1920, H = 1080, CX = 960, CY = 540;
+var cl = function(v, a, b) { return v < a ? a : v > b ? b : v; };
+var seg = function(t, a, b) { return cl((t - a) / (b - a), 0, 1); };
+var easeOutCubic = function(t) { t = cl(t, 0, 1); return 1 - Math.pow(1 - t, 3); };
+var easeInOutCubic = function(t) { t = cl(t, 0, 1); return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2; };
+var easeOutBack = function(t) {
+  t = cl(t, 0, 1);
+  var c1 = 1.70158, c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+};
+
+var DUR = null, PLAN = [], TOTAL = 8.5;
+function buildPlan() {
+  PLAN = [
+    { i: 0, start: 0.0, len: 4.0, vd: 3.0, vs: 0.3 },
+    { i: 1, start: 4.0, len: 4.5, vd: 3.5, vs: 0.3 }
+  ];
+  TOTAL = 8.5;
+}
+buildPlan();
+
+var NH = {
+  lang: "hi-IN",
+  narration: function() { return JSON.stringify(SC.map(function(s) { return { a: s.vo, b: "" }; })); },
+  setDurations: function(j) {
+    try { DUR = typeof j === "string" ? JSON.parse(j) : j; } catch(e) {}
+    buildPlan();
+    return { total: TOTAL, events: PLAN.map(function(p, i) { return { time: p.start, scene: i, text: SC[i].vo }; }) };
+  },
+  run: function(fps) {
+    fps = fps || 60;
+    var N = Math.ceil(TOTAL * fps), n = 0;
+    function step() {
+      if (n >= N) { if (window.Android && window.Android.done) window.Android.done(); return; }
+      frameAt(n / fps);
+      if (window.Android && window.Android.pushFrame) {
+        try { window.Android.pushFrame(cv.toDataURL("image/jpeg", 0.95)); } catch(e) {}
+      }
+      if (window.Android && window.Android.progress) window.Android.progress(n, N);
+      n++;
+      requestAnimationFrame(step);
+    }
+    step();
+  }
+};
+window.NH = NH;
+window.bedSched = function() {};
+
+/* ==========================================================================
+   3. WEBAUDIO PRIME SONIC IDENTITY SYNTHESIZER
+   ========================================================================== */
+var actx = null;
+function getAudioContext() {
+  if (!actx) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) actx = new AC();
+  }
+  if (actx && actx.state === "suspended") actx.resume();
+  return actx;
+}
+
+function schedulePrimeAudio(ctx, baseTime) {
+  var master = ctx.createGain();
+  master.gain.setValueAtTime(0.90, baseTime);
+  master.connect(ctx.destination);
+
+  var comp = ctx.createDynamicsCompressor();
+  comp.threshold.setValueAtTime(-14, baseTime);
+  comp.ratio.setValueAtTime(4.5, baseTime);
+  comp.connect(master);
+
+  var nBuf = ctx.createBuffer(1, ctx.sampleRate * 3.0, ctx.sampleRate);
+  var nd = nBuf.getChannelData(0);
+  for (var i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+
+  // 1. Cyan Carousel Vortex Whoosh (0.15s -> 2.60s)
+  var sw = ctx.createBufferSource(); sw.buffer = nBuf;
+  var swF = ctx.createBiquadFilter(); swF.type = "bandpass"; swF.Q.setValueAtTime(4.5, baseTime + 0.15);
+  swF.frequency.setValueAtTime(180, baseTime + 0.15);
+  swF.frequency.exponentialRampToValueAtTime(1800, baseTime + 1.8);
+  var swG = ctx.createGain();
+  swG.gain.setValueAtTime(0.0001, baseTime + 0.15);
+  swG.gain.linearRampToValueAtTime(0.20, baseTime + 1.5);
+  swG.gain.exponentialRampToValueAtTime(0.0001, baseTime + 2.6);
+  sw.connect(swF); swF.connect(swG); swG.connect(comp);
+  sw.start(baseTime + 0.15, 0, 2.5);
+
+  // 2. Warm Cinema Sub-Bass Foundation (1.50s -> 7.20s)
+  var sub = ctx.createOscillator(), subG = ctx.createGain();
+  sub.type = "sine";
+  sub.frequency.setValueAtTime(58.27, baseTime + 1.5); // Bb1
+  subG.gain.setValueAtTime(0.0001, baseTime + 1.5);
+  subG.gain.linearRampToValueAtTime(0.65, baseTime + 3.45);
+  subG.gain.exponentialRampToValueAtTime(0.0001, baseTime + 7.2);
+  sub.connect(subG); subG.connect(comp);
+  sub.start(baseTime + 1.5); sub.stop(baseTime + 7.3);
+
+  // 3. Prime Signature 3-Note Ascending Motif (F4 -> Bb4 -> D5)
+  [
+    { f: 349.23, t: 2.55, d: 0.9, v: 0.25 },
+    { f: 466.16, t: 2.98, d: 0.9, v: 0.30 },
+    { f: 587.33, t: 3.42, d: 3.2, v: 0.40 }
+  ].forEach(function(n) {
+    var t0 = baseTime + n.t;
+    var o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain();
+    o1.type = "sine"; o1.frequency.setValueAtTime(n.f, t0);
+    o2.type = "triangle"; o2.frequency.setValueAtTime(n.f * 2, t0);
+    var g2 = ctx.createGain(); g2.gain.setValueAtTime(0.2, t0); g2.gain.exponentialRampToValueAtTime(0.001, t0 + 0.25);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(n.v, t0 + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + n.d);
+    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(comp);
+    o1.start(t0); o1.stop(t0 + n.d + 0.05);
+    o2.start(t0); o2.stop(t0 + n.d + 0.05);
+  });
+
+  // 4. Lush Bb Major 9th Orchestral Chord at Smile Lockup (3.42s -> 7.60s)
+  var tC = baseTime + 3.42;
+  [116.54, 174.61, 293.66, 440.00, 523.25].forEach(function(f, idx) {
+    var p1 = ctx.createOscillator(), p2 = ctx.createOscillator(), flt = ctx.createBiquadFilter(), g = ctx.createGain();
+    p1.type = "sawtooth"; p2.type = "triangle";
+    p1.frequency.setValueAtTime(f * 0.998, tC); p2.frequency.setValueAtTime(f * 1.002, tC);
+    flt.type = "lowpass";
+    flt.frequency.setValueAtTime(280, tC);
+    flt.frequency.exponentialRampToValueAtTime(2100, tC + 0.5);
+    flt.frequency.exponentialRampToValueAtTime(450, tC + 3.9);
+    var v = 0.095 / (1 + idx * 0.2);
+    g.gain.setValueAtTime(0.0001, tC);
+    g.gain.linearRampToValueAtTime(v, tC + 0.25);
+    g.gain.exponentialRampToValueAtTime(0.0001, tC + 4.1);
+    p1.connect(flt); p2.connect(flt); flt.connect(g); g.connect(comp);
+    p1.start(tC); p1.stop(tC + 4.2); p2.start(tC); p2.stop(tC + 4.2);
+  });
+
+  // 5. Arrowhead Lock-in Sparkle Ding (4.22s)
+  [1760, 2349.32, 3520].forEach(function(sf, idx) {
+    var tS = baseTime + 4.22 + idx * 0.04;
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(sf, tS);
+    g.gain.setValueAtTime(0.0001, tS);
+    g.gain.linearRampToValueAtTime(0.06, tS + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, tS + 1.5);
+    o.connect(g); g.connect(comp);
+    o.start(tS); o.stop(tS + 1.6);
+  });
+}
+
+function renderSfxWav(cb) {
+  var off = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 44100 * 8.5, 44100);
+  schedulePrimeAudio(off, 0);
+  off.startRendering().then(function(buf) {
+    var numOfChan = buf.numberOfChannels, len = buf.length * numOfChan * 2 + 44;
+    var out = new DataView(new ArrayBuffer(len)), ch = [], pos = 0, offset = 0;
+    function u16(d) { out.setUint16(pos, d, true); pos += 2; }
+    function u32(d) { out.setUint32(pos, d, true); pos += 4; }
+    u32(0x46464952); u32(len - 8); u32(0x45564157); u32(0x20746d66); u32(16); u16(1); u16(numOfChan);
+    u32(buf.sampleRate); u32(buf.sampleRate * 2 * numOfChan); u16(numOfChan * 2); u16(16); u32(0x61746164); u32(len - pos - 4);
+    for (var i = 0; i < numOfChan; i++) ch.push(buf.getChannelData(i));
+    while (offset < buf.length) {
+      for (var cIdx = 0; cIdx < numOfChan; cIdx++) {
+        var s = Math.max(-1, Math.min(1, ch[cIdx][offset]));
+        out.setInt16(pos, (s < 0 ? s * 32768 : s * 32767) | 0, true); pos += 2;
+      }
+      offset++;
+    }
+    cb(new Blob([out], { type: "audio/wav" }));
+  });
+}
+
+/* ==========================================================================
+   4. ULTRA-REALISTIC PRIME VIDEO RENDERING ENGINE
+   ========================================================================== */
+
+// Draws 3D Orbiting Cylindrical Carousel of Real TMDB Movie Posters & Cyan Energy Rings
+function drawPrimeTMDBCarousel(T, collapseP, alpha) {
+  if (alpha <= 0.005) return;
+  c.save();
+  c.globalAlpha = cl(alpha, 0, 1);
+
+  var count = 12;
+  var baseRadius = 640 * (1 - easeInOutCubic(collapseP) * 0.55);
+  var items = [];
+
+  for (var i = 0; i < count; i++) {
+    var angle = (i / count) * Math.PI * 2 + T * 1.15;
+    var x3d = Math.sin(angle) * baseRadius;
+    var z3d = Math.cos(angle) * baseRadius + 920;
+    var y3d = Math.sin(angle * 2 + T) * 55 * (1 - collapseP);
+    items.push({ idx: i, x3d: x3d, y3d: y3d, z3d: z3d, angle: angle });
+  }
+
+  // Painter's algorithm: sort back-to-front by z3d
+  items.sort(function(a, b) { return b.z3d - a.z3d; });
+
+  var focal = 720;
+  items.forEach(function(it) {
+    if (it.z3d < 100) return;
+    var scale = focal / it.z3d;
+    var px = CX + it.x3d * scale;
+    var py = CY - 20 + it.y3d * scale;
+    var w = 180 * scale;
+    var h = 270 * scale;
+    var horizSquash = Math.max(0.18, Math.abs(Math.cos(it.angle)));
+
+    c.save();
+    c.translate(px, py);
+    c.scale(horizSquash, 1.0);
+    c.globalAlpha = alpha * cl((1500 - it.z3d) / 900, 0.15, 0.85);
+
+    // Cyan glowing card frame
+    c.shadowColor = "#00A8E1";
+    c.shadowBlur = 20 * scale;
+    c.fillStyle = "#06182E";
+    c.fillRect(-w / 2, -h / 2, w, h);
+
+    if (TMDB_POSTERS.length > 0) {
+      var img = TMDB_POSTERS[it.idx % TMDB_POSTERS.length];
+      if (img) {
+        try { c.drawImage(img, -w / 2, -h / 2, w, h); } catch(e) {}
+      }
+    }
+
+    c.strokeStyle = "#38D2FF";
+    c.lineWidth = 2.5 * scale;
+    c.strokeRect(-w / 2, -h / 2, w, h);
+    c.restore();
+  });
+
+  // Swirling Prime Cyan Light Rings around the carousel
+  c.globalCompositeOperation = "screen";
+  for (var r = 0; r < 14; r++) {
+    c.save();
+    c.translate(CX, CY - 20);
+    c.rotate((r * 0.25) + T * 0.18);
+    c.scale(1.0, 0.34);
+    var rad = (240 + r * 42) * (1 - collapseP * 0.58);
+    var a0 = T * (1.2 + (r % 3) * 0.4) * (r % 2 ? 1 : -1) + r;
+    c.strokeStyle = r % 3 === 0 ? "#FFFFFF" : "#00A8E1";
+    c.lineWidth = 3 + (r % 4) * 2.2;
+    c.lineCap = "round";
+    c.shadowColor = "#00A8E1";
+    c.shadowBlur = 22;
+    c.beginPath();
+    c.arc(0, 0, rad, a0, a0 + 1.15);
+    c.stroke();
+    c.restore();
+  }
+
+  c.restore();
+}
+
+// Draws 3D Metallic "NH BOX" with Prime Video typography & studio reflections
+function drawPrimeWordmark3D(text, cx, cy, revealP, lockP, sweepPos) {
+  if (revealP <= 0.005) return;
+
+  var chars = text.split(""); // ["N", "H", " ", "B", "O", "X"]
+  var widths = [136, 136, 62, 132, 142, 134];
+  var gap = 12;
+  var totalW = 0;
+  for (var k = 0; k < widths.length; k++) totalW += widths[k];
+  totalW += (chars.length - 1) * gap;
+
+  var startX = -totalW / 2;
+  var fontSize = 184;
+  var fontSpec = "900 " + fontSize + "px 'Montserrat', 'Segoe UI', Roboto, sans-serif";
+
+  c.save();
+  c.translate(cx, cy);
+  var scale = 1.32 - 0.32 * easeOutCubic(lockP);
+  c.scale(scale, scale);
+
+  var curX = startX;
+  for (var i = 0; i < chars.length; i++) {
+    var ch = chars[i], cw = widths[i];
+    var lx = curX + cw / 2;
+    curX += cw + gap;
+    if (ch === " ") continue;
+
+    var delay = i * 0.07;
+    var p = cl((revealP - delay) / (1 - delay * 0.55), 0, 1);
+    if (p <= 0.001) continue;
+
+    var eP = easeOutCubic(p);
+    var eLock = easeInOutCubic(lockP);
+    var normX = lx / (totalW * 0.5);
+
+    c.save();
+    c.translate(lx, (1 - eP) * 55);
+    c.scale(0.6 + 0.4 * eP, 1.0);
+    c.globalAlpha = cl(p * 1.3, 0, 1);
+    c.font = fontSpec;
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+
+    // 3D Cobalt-Cyan Metallic Extrusion Layers
+    var depth = (1 - eLock * 0.72) * 26 + 5;
+    for (var l = 18; l >= 1; l--) {
+      var frac = l / 18;
+      var ox = -normX * depth * frac * (1 - eLock * 0.45);
+      var oy = depth * 0.52 * frac * (1 - eLock * 0.45);
+      if (l === 18) {
+        c.fillStyle = "rgba(0, 168, 225, 0.55)";
+        c.shadowColor = "#00A8E1";
+        c.shadowBlur = 24;
+      } else {
+        c.shadowBlur = 0;
+        var rC = Math.round(3 + (1 - frac) * 20);
+        var gC = Math.round(42 + (1 - frac) * 105);
+        var bC = Math.round(88 + (1 - frac) * 140);
+        c.fillStyle = "rgb(" + rC + "," + gC + "," + bC + ")";
+      }
+      c.fillText(ch, ox, oy);
+    }
+
+    // Crisp Ice-White Chrome Front Face
+    var fg = c.createLinearGradient(0, -fontSize * 0.5, 0, fontSize * 0.5);
+    fg.addColorStop(0.0, "#FFFFFF");
+    fg.addColorStop(0.6, "#F4FAFF");
+    fg.addColorStop(1.0, "#C2E6FF");
+    c.shadowColor = "rgba(0, 168, 225, 0.65)";
+    c.shadowBlur = 18;
+    c.fillStyle = fg;
+    c.fillText(ch, 0, 0);
+    c.shadowBlur = 0;
+
+    c.strokeStyle = "rgba(195, 242, 255, 0.9)";
+    c.lineWidth = 1.8;
+    c.strokeText(ch, -0.8, -0.8);
+
+    // Traveling Light Sheen
+    if (sweepPos >= 0 && sweepPos <= 1.2) {
+      var swX = (sweepPos * 2.2 - 1.1) * (totalW * 0.55);
+      var dist = Math.abs(swX - lx);
+      if (dist < 130) {
+        c.strokeStyle = "rgba(255,255,255," + ((1 - dist / 130) * 0.9) + ")";
+        c.lineWidth = 3.6;
+        c.strokeText(ch, 0, 0);
+      }
+    }
+
+    c.restore();
+  }
+
+  c.restore();
+}
+
+// Exact SVG-Calibrated Amazon Prime Smile Swoosh & Sculpted Dimple Arrowhead
+function drawPrimeExactSmileArrow(cx, cy, drawP, pulseP) {
+  if (drawP <= 0.005) return;
+  c.save();
+  c.translate(cx, cy);
+
+  var p = easeInOutCubic(cl(drawP, 0, 1));
+  var spanW = 550;
+  var x0 = -spanW * 0.5, y0 = -4;
+  var x1 = spanW * 0.48, y1 = -8;
+  var cpX = 18, cpY = 82; // Authentic asymmetric Prime smile dip
+
+  // Clip box to progressively wipe/draw the smile from left to right
+  c.save();
+  c.beginPath();
+  c.rect(x0 - 30, -60, (spanW + 90) * p, 190);
+  c.clip();
+
+  var grad = c.createLinearGradient(x0, 0, x1 + 40, 0);
+  grad.addColorStop(0.0, "#0088C7");
+  grad.addColorStop(0.45, "#00A8E1");
+  grad.addColorStop(0.85, "#29CCFF");
+  grad.addColorStop(1.0, "#80E8FF");
+
+  c.shadowColor = "#00A8E1";
+  c.shadowBlur = 26 + 12 * (pulseP || 0);
+  c.fillStyle = grad;
+
+  // Exact dual-bezier crescent path (thin left tail, rich belly, sleek neck into arrow)
+  c.beginPath();
+  c.moveTo(x0, y0);
+  // Upper curve of the smile
+  c.quadraticCurveTo(cpX, cpY - 17, x1, y1);
+  // Lower deeper curve of the smile
+  c.quadraticCurveTo(cpX + 8, cpY + 15, x0, y0);
+  c.closePath();
+  c.fill();
+
+  c.restore();
+
+  // Sculpted Prime Dimple Arrowhead at right tip (locks in as p > 0.78)
+  if (p > 0.78) {
+    var aP = easeOutBack(cl((p - 0.78) / 0.22, 0, 1));
+    c.save();
+    c.translate(x1 + 2, y1 + 1);
+    c.scale(aP, aP);
+
+    c.fillStyle = "#38D6FF";
+    c.shadowColor = "#00A8E1";
+    c.shadowBlur = 24;
+
+    c.beginPath();
+    c.moveTo(22, -14);                      // Sharp right-top apex
+    c.quadraticCurveTo(-14, -18, -46, -10); // Upper curved wing
+    c.quadraticCurveTo(-34, -2, -16, 2);    // Inner notch
+    c.quadraticCurveTo(-22, 20, -27, 38);   // Lower dimple barb
+    c.quadraticCurveTo(-2, 20, 22, -14);    // Outer curved edge
+    c.closePath();
+    c.fill();
+
+    c.strokeStyle = "rgba(255,255,255,0.85)";
+    c.lineWidth = 1.6;
+    c.stroke();
+    c.restore();
+  }
+
+  c.restore();
+}
+
+function drawSubtitles(T) {
+  var cap = document.getElementById("cap");
+  if (cap && !cap.checked) return;
+  var cur = T < 4.0 ? PLAN[0] : PLAN[1];
+  var txt = SC[cur.i].vo;
+  var st = T - cur.start;
+  var a = cl(st / 0.3, 0, 1) * (1 - cl((st - (cur.len - 0.4)) / 0.4, 0, 1));
+  if (a <= 0.01) return;
+
+  c.save();
+  c.globalAlpha = a;
+  c.font = "600 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  c.textAlign = "center";
+  c.textBaseline = "middle";
+  var tw = c.measureText(txt).width + 44;
+  c.fillStyle = "rgba(4, 12, 24, 0.84)";
+  c.strokeStyle = "rgba(0, 168, 225, 0.5)";
+  c.lineWidth = 1.5;
+  c.fillRect(CX - tw / 2, H - 108, tw, 48);
+  c.strokeRect(CX - tw / 2, H - 108, tw, 48);
+  c.fillStyle = "#FFFFFF";
+  c.fillText(txt, CX, H - 84);
+  c.restore();
+}
+
+/* ==========================================================================
+   5. MASTER TIMELINE FRAME RENDERER: frameAt(T)
+   ========================================================================== */
+var prevLiveT = 4.60;
+
+function frameAt(T) {
+  // Deep Midnight Navy & Cyan Volumetric Studio Backdrop
+  c.fillStyle = "#02060D";
+  c.fillRect(0, 0, W, H);
+
+  var glow = Math.sin(seg(T, 2.2, 6.8) * Math.PI);
+  var rad = c.createRadialGradient(CX, CY - 20, 20, CX, CY, 960);
+  rad.addColorStop(0.0, "rgba(0, 168, 225, " + (0.28 + 0.18 * glow) + ")");
+  rad.addColorStop(0.42, "rgba(0, 78, 145, 0.24)");
+  rad.addColorStop(1.0, "rgba(2, 6, 13, 0)");
+  c.fillStyle = rad;
+  c.fillRect(0, 0, W, H);
+
+  /* --- STAGE 1: 3D ORBITING TMDB POSTER CAROUSEL & CYAN RINGS (0.0s -> 3.6s) --- */
+  if (T < 3.65) {
+    var cIn = seg(T, 0.05, 0.75);
+    var cCollapse = seg(T, 1.35, 3.30);
+    var cOut = 1 - seg(T, 2.65, 3.60);
+    drawPrimeTMDBCarousel(T, cCollapse, cIn * cOut);
+  }
+
+  /* --- STAGE 2: 3D BEVELED "NH BOX" WORDMARK LOCKUP (1.20s -> 8.50s) --- */
+  if (T >= 1.20) {
+    var revP = seg(T, 1.20, 2.80);
+    var lockP = seg(T, 2.00, 3.55);
+    var sweepP = seg(T, 3.45, 5.20);
+
+    if (T >= 3.35) {
+      var topA = easeOutCubic(seg(T, 3.35, 4.20));
+      c.save();
+      c.globalAlpha = topA * 0.92;
+      c.font = "800 21px 'Montserrat', sans-serif";
+      c.fillStyle = "#6AD8FF";
+      c.textAlign = "center";
+      try { c.letterSpacing = "13px"; } catch(e) {}
+      c.fillText("A N   N H B O X   O R I G I N A L", CX + 6, CY - 172);
+      c.restore();
+    }
+
+    drawPrimeWordmark3D("NH BOX", CX, CY - 26, revP, lockP, sweepP);
+  }
+
+  /* --- STAGE 3: EXACT PRIME SMILE SWOOSH ARROW (3.30s -> 8.50s) --- */
+  if (T >= 3.30) {
+    var smP = seg(T, 3.30, 4.25);
+    var pulse = Math.sin(seg(T, 4.15, 5.20) * Math.PI);
+    drawPrimeExactSmileArrow(CX, CY + 82, smP, pulse);
+  }
+
+  drawSubtitles(T);
+
+  var te = document.getElementById("timing");
+  if (te) te.textContent = T.toFixed(2) + "s / " + TOTAL.toFixed(2) + "s [60 FPS]";
+  prevLiveT = T;
+}
+
+/* ==========================================================================
+   6. UI CONTROLS
+   ========================================================================== */
+var isPlaying = false, playStart = 0, rafId = null;
+var pvBtn = document.getElementById("pv"), replayBtn = document.getElementById("btnReplay");
+var scSel = document.getElementById("scSel"), fsBtn = document.getElementById("btnFs"), dlBtn = document.getElementById("dl");
+var stEl = document.getElementById("st");
+
+PLAN.forEach(function(p, i) {
+  var o = document.createElement("option");
+  o.value = p.start;
+  o.textContent = "Scene " + (i + 1) + ": " + (i === 0 ? "3D TMDB Carousel & NH BOX Reveal" : "Prime Smile Arrow & Chord Finale");
+  scSel.appendChild(o);
+});
+
+function playAt(offset) {
+  getAudioContext();
+  isPlaying = true;
+  pvBtn.textContent = "⏸ Pause";
+  stEl.textContent = "Status: Playing Ultra-Realistic Prime Video Intro...";
+  playStart = performance.now() - offset * 1000;
+
+  if (document.getElementById("sf").checked && actx && offset <= 0.1) {
+    schedulePrimeAudio(actx, actx.currentTime - offset);
+  }
+
+  function loop() {
+    if (!isPlaying) return;
+    var t = (performance.now() - playStart) / 1000;
+    if (t >= TOTAL) { frameAt(TOTAL); stopPlay(); stEl.textContent = "Status: Completed."; return; }
+    frameAt(t);
+    rafId = requestAnimationFrame(loop);
+  }
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+function stopPlay() {
+  isPlaying = false;
+  pvBtn.textContent = "▶ Preview Chalao";
+  if (rafId) cancelAnimationFrame(rafId);
+}
+
+pvBtn.onclick = function() { isPlaying ? stopPlay() : playAt(0); };
+replayBtn.onclick = function() { stopPlay(); playAt(2.30); };
+scSel.onchange = function() { stopPlay(); playAt(parseFloat(this.value) || 0); };
+fsBtn.onclick = function() { !document.fullscreenElement ? cv.requestFullscreen() : document.exitFullscreen(); };
+dlBtn.onclick = function() {
+  stEl.textContent = "Status: Rendering 16-bit WAV...";
+  renderSfxWav(function(b) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    a.download = "nh_box_prime_realistic_sfx.wav";
+    a.click();
+    stEl.textContent = "Status: WAV Downloaded!";
+  });
+};
+
+frameAt(4.60);
+</script>
+</body>
+</html>

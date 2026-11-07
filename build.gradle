@@ -1,0 +1,4 @@
+// Top-level build file for NH BOX Intro Maker Pro (4K/1080p HTML2Video Studio)
+plugins {
+    id 'com.android.application' version '8.2.2' apply false
+}

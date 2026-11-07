@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:orientation="vertical">
+
+    <!-- TOP PREMIUM STUDIO APP BAR -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="#0B0F1C"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp">
+
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_btn_gradient_red"
+            android:gravity="center"
+            android:text="N"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NH BOX STUDIO PRO"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.04" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cinema Intro Maker • Live TMDB Engine"
+                android:textColor="@color/text_muted"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnImportHtml"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_btn_secondary"
+            android:paddingHorizontal="12dp"
+            android:text="📂 Import HTML"
+            android:textAllCaps="false"
+            android:textColor="#E2E8F0"
+            android:textSize="11.5sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1E293B" />
+
+    <!-- MAIN SCROLLABLE MOBILE WORKSPACE -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <!-- 16:9 CINEMA STAGE MONITOR CARD -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
+                android:orientation="vertical"
+                android:padding="10dp"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:id="@+id/tvActiveTemplateTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🔴 LIVE STAGE • Netflix Cinema Intro"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="#16233B"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2dp"
+                        android:text="16:9 • 60 FPS"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Pure 16:9 Canvas Viewport -->
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="205dp"
+                    android:background="@drawable/bg_canvas_frame"
+                    android:padding="2dp">
+
+                    <WebView
+                        android:id="@+id/webView"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+                </FrameLayout>
+
+                <!-- Quick Transport Controls Bar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnPreviewPlay"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:text="▶ Play Live Preview"
+                        android:textAllCaps="false"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnPreviewRestart"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:paddingHorizontal="14dp"
+                        android:text="⟲ Replay"
+                        android:textAllCaps="false"
+                        android:textColor="#E2E8F0"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- HORIZONTAL TEMPLATE PILL SELECTOR -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SELECT CINEMA INTRO STYLE"
+                android:textColor="@color/text_muted"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:layout_marginBottom="6dp" />
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/chipNetflix"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:background="@drawable/bg_chip_active"
+                        android:paddingHorizontal="16dp"
+                        android:text="🎬 Netflix Red Arch"
+                        android:textAllCaps="false"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/chipPrime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_chip_inactive"
+                        android:paddingHorizontal="16dp"
+                        android:text="💠 Prime Video Smile"
+                        android:textAllCaps="false"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/chipHotstar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_chip_inactive"
+                        android:paddingHorizontal="16dp"
+                        android:text="✨ Disney+ Hotstar"
+                        android:textAllCaps="false"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/chipMarvel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_chip_inactive"
+                        android:paddingHorizontal="16dp"
+                        android:text="🦸 Marvel Poster Flip"
+                        android:textAllCaps="false"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <!-- Hidden Spinner kept for compatibility -->
+            <Spinner
+                android:id="@+id/spTemplates"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <!-- CARD 2: BRAND TEXT & LIVE TMDB API CUSTOMIZER -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
+                android:orientation="vertical"
+                android:padding="14dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BRAND LOGO &amp; TMDB LIVE POSTERS"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.06"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <EditText
+                        android:id="@+id/etBrandText"
+                        android:layout_width="0dp"
+                        android:layout_height="42dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input_field"
+                        android:hint="Enter Brand Name (e.g. NH BOX)"
+                        android:inputType="textCapCharacters"
+                        android:paddingHorizontal="12dp"
+                        android:text="NH BOX"
+                        android:textColor="#FFFFFF"
+                        android:textColorHint="@color/text_muted"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnApplyBrand"
+                        android:layout_width="wrap_content"
+                        android:layout_height="42dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:paddingHorizontal="14dp"
+                        android:text="✓ Apply Live"
+                        android:textAllCaps="false"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="4dp"
+                    android:text="TMDB API Key (Fetches Real Movie Posters Inside Intro)"
+                    android:textColor="@color/text_muted"
+                    android:textSize="11sp" />
+
+                <EditText
+                    android:id="@+id/etTmdbKey"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_input_field"
+                    android:hint="TMDB API Key"
+                    android:inputType="textNoSuggestions"
+                    android:paddingHorizontal="12dp"
+                    android:text="2e211dfda888f7cc55ce433d743f9bc3"
+                    android:textColor="#7DD3FC"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- CARD 3: MASTER MP4 EXPORT ENGINE -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ULTRA HD HARDWARE MP4 RENDERER"
+                    android:textColor="@color/accent_gold"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.06"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Spinner
+                        android:id="@+id/spResolution"
+                        android:layout_width="0dp"
+                        android:layout_height="42dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input_field"
+                        android:paddingHorizontal="10dp" />
+
+                    <Spinner
+                        android:id="@+id/spFps"
+                        android:layout_width="115dp"
+                        android:layout_height="42dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_input_field"
+                        android:paddingHorizontal="10dp" />
+                </LinearLayout>
+
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="12dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressTint="#E50914" />
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Ready • Select resolution &amp; tap Export MP4 Video"
+                    android:textColor="@color/text_muted"
+                    android:textSize="11.5sp" />
+
+                <!-- Export & Watch/Share Action Buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnExportMp4"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_btn_gradient_red"
+                        android:text="🚀 EXPORT MP4 VIDEO"
+                        android:textAllCaps="false"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnPlayExported"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:enabled="false"
+                        android:paddingHorizontal="12dp"
+                        android:text="▶ Watch"
+                        android:textAllCaps="false"
+                        android:textColor="#10B981"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnShareVideo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:enabled="false"
+                        android:paddingHorizontal="12dp"
+                        android:text="📤 Share"
+                        android:textAllCaps="false"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

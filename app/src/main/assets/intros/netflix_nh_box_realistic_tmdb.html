@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NH BOX - Ultra-Realistic Netflix Cinema Intro (TMDB + HTML2Video)</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #030305;
+  --panel: #0c0d14;
+  --border: #222638;
+  --red: #E50914;
+  --text: #F5F7FA;
+  --muted: #8E9BAE;
+  box-sizing: border-box;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 14px 36px;
+}
+.wrap { width: 100%; max-width: 1120px; display: flex; flex-direction: column; gap: 12px; }
+.header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.title-group h1 { font-size: 21px; font-weight: 900; display: flex; align-items: center; gap: 10px; }
+.badge { background: #E50914; color: #fff; font-size: 11px; padding: 3px 9px; border-radius: 4px; letter-spacing: 1px; box-shadow: 0 0 15px rgba(229,9,20,0.6); }
+.tmdb-badge { background: #01b4e4; color: #000; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 4px; }
+.desc { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+.canvas-holder {
+  width: 100%; background: #000; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.92), 0 0 45px rgba(229,9,20,0.18);
+}
+canvas#cv { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; background: #000; }
+.controls-bar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 10px; background: var(--panel); border: 1px solid var(--border); padding: 10px 14px; border-radius: 10px;
+}
+.btn-cluster, .toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+button, select {
+  font: 600 12.5px inherit; padding: 8px 13px; border-radius: 7px; border: 1px solid #2d334a;
+  background: #141826; color: #fff; cursor: pointer; transition: 0.15s;
+}
+button:hover, select:hover { border-color: #E50914; background: #1d2236; }
+button.primary { background: linear-gradient(135deg, #E50914, #99060D); border-color: #FF424B; box-shadow: 0 0 14px rgba(229,9,20,0.45); }
+.toggles label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.status-bar { display: flex; justify-content: space-between; font: 12px ui-monospace, monospace; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="title-group">
+      <h1>NH BOX <span class="badge">NETFLIX CINEMA ORIGINAL</span> <span class="tmdb-badge" id="tmdbSt">TMDB API: Connecting...</span></h1>
+      <p class="desc">3D Folded Red Ribbon 'N' Unfold • True Curved "NH BOX" Cinema Arch • 260 Fiber-Optic Spectrum Beams • Live TMDB Movie Wall Backdrop.</p>
+    </div>
+  </div>
+  <div class="canvas-holder">
+    <canvas id="cv" width="1920" height="1080"></canvas>
+  </div>
+  <div class="controls-bar">
+    <div class="btn-cluster">
+      <button id="pv" class="primary">▶ Preview Chalao</button>
+      <button id="btnReplay">⟲ Replay "Ta-Dum"</button>
+      <select id="scSel"></select>
+      <button id="btnFs">⛶ Fullscreen</button>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="cap" checked> Subtitles</label>
+      <label><input type="checkbox" id="vo"> Voice</label>
+      <label><input type="checkbox" id="sf" checked> "Ta-Dum" Master SFX</label>
+      <button id="dl">⬇ SFX Track (WAV)</button>
+    </div>
+  </div>
+  <div class="status-bar">
+    <span id="st">Status: Ready. Click Preview.</span>
+    <span id="timing">0.00s / 8.50s [60 FPS]</span>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   1. LIVE TMDB API POSTER FETCHER (API KEY: 2e211dfda888f7cc55ce433d743f9bc3)
+   ========================================================================== */
+var TMDB_KEY = "2e211dfda888f7cc55ce433d743f9bc3";
+var TMDB_POSTERS = [];
+var tmdbLoadedCount = 0;
+
+function fetchTMDBPosters() {
+  var stBadge = document.getElementById("tmdbSt");
+  var url = "https://api.themoviedb.org/3/trending/movie/week?api_key=" + TMDB_KEY;
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data || !data.results) return;
+      var items = data.results.slice(0, 18);
+      if (stBadge) stBadge.textContent = "TMDB Live: Fetching " + items.length + " Posters...";
+      items.forEach(function(item) {
+        if (!item.poster_path) return;
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function() {
+          TMDB_POSTERS.push(img);
+          tmdbLoadedCount++;
+          if (stBadge) stBadge.textContent = "TMDB Live: " + tmdbLoadedCount + " Real Posters Ready ✓";
+          if (!isPlaying) frameAt(prevLiveT > 0 ? prevLiveT : 2.15);
+        };
+        img.onerror = function() {
+          // Fallback without crossOrigin if CORS header blocked on specific CDN edge
+          var img2 = new Image();
+          img2.onload = function() {
+            TMDB_POSTERS.push(img2);
+            tmdbLoadedCount++;
+            if (stBadge) stBadge.textContent = "TMDB Live: " + tmdbLoadedCount + " Posters Ready ✓";
+            if (!isPlaying) frameAt(prevLiveT > 0 ? prevLiveT : 2.15);
+          };
+          img2.src = "https://image.tmdb.org/t/p/w500" + item.poster_path;
+        };
+        img.src = "https://image.tmdb.org/t/p/w500" + item.poster_path + "?not-from-cache-please";
+      });
+    })
+    .catch(function() {
+      if (stBadge) stBadge.textContent = "TMDB Offline Mode (Procedural Posters Active)";
+    });
+}
+fetchTMDBPosters();
+
+/* ==========================================================================
+   2. HTML2VIDEO BRIDGE CONTRACT & TIMELINE
+   ========================================================================== */
+var SC = [
+  { "min": 4.0, "vo": "NH BOX Originals presents..." },
+  { "min": 4.5, "vo": "Ta-dum! Experience cinema like never before on NH BOX." }
+];
+var S = SC;
+
+var cv = document.getElementById("cv"), c = cv.getContext("2d");
+var W = 1920, H = 1080, CX = 960, CY = 540;
+var cl = function(v, a, b) { return v < a ? a : v > b ? b : v; };
+var seg = function(t, a, b) { return cl((t - a) / (b - a), 0, 1); };
+var easeOutCubic = function(t) { t = cl(t, 0, 1); return 1 - Math.pow(1 - t, 3); };
+var easeInOutCubic = function(t) { t = cl(t, 0, 1); return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2; };
+var easeInExpo = function(t) { t = cl(t, 0, 1); return t === 0 ? 0 : Math.pow(2, 10 * (t - 1)); };
+var easeOutExpo = function(t) { t = cl(t, 0, 1); return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); };
+
+var DUR = null, PLAN = [], TOTAL = 8.5;
+function buildPlan() {
+  PLAN = [
+    { i: 0, start: 0.0, len: 4.0, vd: 3.0, vs: 0.3 },
+    { i: 1, start: 4.0, len: 4.5, vd: 3.5, vs: 0.3 }
+  ];
+  TOTAL = 8.5;
+}
+buildPlan();
+
+var NH = {
+  lang: "hi-IN",
+  narration: function() { return JSON.stringify(SC.map(function(s) { return { a: s.vo, b: "" }; })); },
+  setDurations: function(j) {
+    try { DUR = typeof j === "string" ? JSON.parse(j) : j; } catch(e) {}
+    buildPlan();
+    return { total: TOTAL, events: PLAN.map(function(p, i) { return { time: p.start, scene: i, text: SC[i].vo }; }) };
+  },
+  run: function(fps) {
+    fps = fps || 60;
+    var N = Math.ceil(TOTAL * fps), n = 0;
+    function step() {
+      if (n >= N) { if (window.Android && window.Android.done) window.Android.done(); return; }
+      frameAt(n / fps);
+      if (window.Android && window.Android.pushFrame) {
+        try { window.Android.pushFrame(cv.toDataURL("image/jpeg", 0.95)); } catch(e) {}
+      }
+      if (window.Android && window.Android.progress) window.Android.progress(n, N);
+      n++;
+      requestAnimationFrame(step);
+    }
+    step();
+  }
+};
+window.NH = NH;
+window.bedSched = function() {};
+
+/* ==========================================================================
+   3. WEBAUDIO AUTHENTIC NETFLIX "TA-DUM" + ANVIL + GUITAR + SPECTRUM WHOOSH
+   ========================================================================== */
+var actx = null;
+function getAudioContext() {
+  if (!actx) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) actx = new AC();
+  }
+  if (actx && actx.state === "suspended") actx.resume();
+  return actx;
+}
+
+function scheduleNetflixAudio(ctx, baseTime) {
+  var master = ctx.createGain();
+  master.gain.setValueAtTime(0.92, baseTime);
+  master.connect(ctx.destination);
+
+  var comp = ctx.createDynamicsCompressor();
+  comp.threshold.setValueAtTime(-12, baseTime);
+  comp.ratio.setValueAtTime(6, baseTime);
+  comp.connect(master);
+
+  var tTa = baseTime + 0.95;  // "TA" (Ribbon N stem 2 snap)
+  var tDum = baseTime + 1.22; // "DUM!" (Full NH BOX Cinema Arch Lockup)
+
+  // 1. Reverse Air Suck before Ta-Dum (0.45s -> 0.95s)
+  var nBuf = ctx.createBuffer(1, ctx.sampleRate * 3.5, ctx.sampleRate);
+  var nd = nBuf.getChannelData(0);
+  for (var i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+
+  var rev = ctx.createBufferSource();
+  rev.buffer = nBuf;
+  var revF = ctx.createBiquadFilter();
+  revF.type = "bandpass";
+  revF.frequency.setValueAtTime(140, baseTime + 0.45);
+  revF.frequency.exponentialRampToValueAtTime(980, tTa);
+  var revG = ctx.createGain();
+  revG.gain.setValueAtTime(0.0001, baseTime + 0.45);
+  revG.gain.exponentialRampToValueAtTime(0.28, tTa);
+  revG.gain.setValueAtTime(0.0001, tTa + 0.02);
+  rev.connect(revF); revF.connect(revG); revG.connect(comp);
+  rev.start(baseTime + 0.45, 0, 0.55);
+
+  // 2. HIT 1: "TA" (Knock + Metallic Anvil Transient at 0.95s)
+  var taSub = ctx.createOscillator(), taG = ctx.createGain();
+  taSub.type = "sine";
+  taSub.frequency.setValueAtTime(115, tTa);
+  taSub.frequency.exponentialRampToValueAtTime(48, tTa + 0.14);
+  taG.gain.setValueAtTime(0.72, tTa);
+  taG.gain.exponentialRampToValueAtTime(0.001, tTa + 0.20);
+  taSub.connect(taG); taG.connect(comp);
+  taSub.start(tTa); taSub.stop(tTa + 0.22);
+
+  var taClick = ctx.createOscillator(), taCG = ctx.createGain();
+  taClick.type = "triangle";
+  taClick.frequency.setValueAtTime(240, tTa);
+  taClick.frequency.exponentialRampToValueAtTime(75, tTa + 0.06);
+  taCG.gain.setValueAtTime(0.45, tTa);
+  taCG.gain.exponentialRampToValueAtTime(0.001, tTa + 0.08);
+  taClick.connect(taCG); taCG.connect(comp);
+  taClick.start(tTa); taClick.stop(tTa + 0.09);
+
+  // 3. HIT 2: "DUM!" (Massive 36Hz Seismic Sub + Reversed Electric Guitar Bloom Chord at 1.22s)
+  var dumSub = ctx.createOscillator(), dumSG = ctx.createGain();
+  dumSub.type = "sine";
+  dumSub.frequency.setValueAtTime(125, tDum);
+  dumSub.frequency.exponentialRampToValueAtTime(36.7, tDum + 0.22); // D1
+  dumSG.gain.setValueAtTime(1.0, tDum);
+  dumSG.gain.setValueAtTime(0.88, tDum + 0.45);
+  dumSG.gain.exponentialRampToValueAtTime(0.0001, tDum + 3.2);
+  dumSub.connect(dumSG); dumSG.connect(comp);
+  dumSub.start(tDum); dumSub.stop(tDum + 3.3);
+
+  // Iconic Netflix D-Major/Add9 Guitar Shimmer Swell (D2, A2, D3, F#3, A3, E4)
+  [73.42, 110.00, 146.83, 185.00, 220.00, 329.63].forEach(function(freq, idx) {
+    var osc = ctx.createOscillator(), flt = ctx.createBiquadFilter(), g = ctx.createGain();
+    osc.type = idx < 2 ? "sawtooth" : "triangle";
+    osc.frequency.setValueAtTime(freq * (1 + (idx % 2 ? 0.002 : -0.002)), tDum);
+    flt.type = "lowpass";
+    flt.frequency.setValueAtTime(950, tDum);
+    flt.frequency.exponentialRampToValueAtTime(2400, tDum + 0.35);
+    flt.frequency.exponentialRampToValueAtTime(380, tDum + 2.8);
+    var v = 0.16 / (1 + idx * 0.25);
+    g.gain.setValueAtTime(0.0001, tDum);
+    g.gain.linearRampToValueAtTime(v, tDum + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, tDum + 3.0);
+    osc.connect(flt); flt.connect(g); g.connect(comp);
+    osc.start(tDum); osc.stop(tDum + 3.1);
+  });
+
+  // 4. Prism Light Spectrum Hyper-Drive Whoosh (3.10s -> 5.60s)
+  var spW = ctx.createBufferSource();
+  spW.buffer = nBuf;
+  var spF = ctx.createBiquadFilter();
+  spF.type = "bandpass";
+  spF.Q.setValueAtTime(4.5, baseTime + 3.10);
+  spF.frequency.setValueAtTime(220, baseTime + 3.10);
+  spF.frequency.exponentialRampToValueAtTime(3200, baseTime + 4.30);
+  spF.frequency.exponentialRampToValueAtTime(500, baseTime + 5.60);
+  var spG = ctx.createGain();
+  spG.gain.setValueAtTime(0.0001, baseTime + 3.10);
+  spG.gain.linearRampToValueAtTime(0.28, baseTime + 4.20);
+  spG.gain.exponentialRampToValueAtTime(0.0001, baseTime + 5.65);
+  spW.connect(spF); spF.connect(spG); spG.connect(comp);
+  spW.start(baseTime + 3.10, 0, 2.6);
+}
+
+function renderSfxWav(cb) {
+  var off = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 44100 * 8.5, 44100);
+  scheduleNetflixAudio(off, 0);
+  off.startRendering().then(function(buf) {
+    var numOfChan = buf.numberOfChannels, len = buf.length * numOfChan * 2 + 44;
+    var out = new DataView(new ArrayBuffer(len)), ch = [], pos = 0, offset = 0;
+    function u16(d) { out.setUint16(pos, d, true); pos += 2; }
+    function u32(d) { out.setUint32(pos, d, true); pos += 4; }
+    u32(0x46464952); u32(len - 8); u32(0x45564157); u32(0x20746d66); u32(16); u16(1); u16(numOfChan);
+    u32(buf.sampleRate); u32(buf.sampleRate * 2 * numOfChan); u16(numOfChan * 2); u16(16); u32(0x61746164); u32(len - pos - 4);
+    for (var i = 0; i < numOfChan; i++) ch.push(buf.getChannelData(i));
+    while (offset < buf.length) {
+      for (var cIdx = 0; cIdx < numOfChan; cIdx++) {
+        var s = Math.max(-1, Math.min(1, ch[cIdx][offset]));
+        out.setInt16(pos, (s < 0 ? s * 32768 : s * 32767) | 0, true); pos += 2;
+      }
+      offset++;
+    }
+    cb(new Blob([out], { type: "audio/wav" }));
+  });
+}
+
+/* ==========================================================================
+   4. FIBER-OPTIC SPECTRUM STREAMS (260 ULTRA-FINE PRISM LINES)
+   ========================================================================== */
+var PRISM_LINES = [];
+var PRISM_PALETTE = [
+  "#E50914", "#FF1E27", "#B80710", "#FF0055", "#FF5500",
+  "#FFB800", "#00E5FF", "#0066FF", "#7B00FF", "#D400FF", "#FFFFFF"
+];
+(function initPrism() {
+  for (var i = 0; i < 260; i++) {
+    var s1 = Math.sin(i * 12.9898) * 43758.5453; s1 -= Math.floor(s1);
+    var s2 = Math.sin(i * 78.233) * 43758.5453; s2 -= Math.floor(s2);
+    var s3 = Math.sin(i * 45.164) * 43758.5453; s3 -= Math.floor(s3);
+    PRISM_LINES.push({
+      x: (s1 - 0.5) * 2600,
+      z: 50 + s2 * 1800,
+      width: 1.5 + Math.pow(s3, 2) * 22,
+      col: PRISM_PALETTE[Math.floor(s1 * PRISM_PALETTE.length)],
+      speed: 0.7 + s2 * 1.5,
+      alpha: 0.25 + s3 * 0.75
+    });
+  }
+})();
+
+/* ==========================================================================
+   5. ULTRA-REALISTIC NETFLIX RENDERING ENGINE
+   ========================================================================== */
+
+// Draws angled perspective TMDB Movie Wall behind the Netflix logo
+function drawTMDBPerspectiveWall(T, alpha) {
+  if (alpha <= 0.005 || TMDB_POSTERS.length === 0) return;
+  c.save();
+  c.globalAlpha = cl(alpha, 0, 1);
+
+  var cols = 7, rows = 3;
+  var cardW = 250, cardH = 370, gap = 22;
+  var startX = CX - ((cols * (cardW + gap)) / 2) + (T * 28) % (cardW + gap);
+  var startY = CY - ((rows * (cardH + gap)) / 2);
+
+  c.translate(CX, CY);
+  c.scale(1.12, 1.12);
+  c.rotate(-0.08);
+  c.translate(-CX, -CY);
+
+  for (var r = 0; r < rows; r++) {
+    for (var col = -1; col <= cols; col++) {
+      var idx = Math.abs(r * cols + col) % TMDB_POSTERS.length;
+      var img = TMDB_POSTERS[idx];
+      if (!img) continue;
+      var x = startX + col * (cardW + gap) + (r % 2) * 90;
+      var y = startY + r * (cardH + gap);
+      try {
+        c.drawImage(img, x, y, cardW, cardH);
+      } catch(e) {}
+    }
+  }
+
+  // Deep Netflix crimson-black vignette over the TMDB wall
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  var grad = c.createRadialGradient(CX, CY, 120, CX, CY, 1050);
+  grad.addColorStop(0.0, "rgba(10, 0, 2, 0.72)");
+  grad.addColorStop(0.55, "rgba(5, 0, 1, 0.88)");
+  grad.addColorStop(1.0, "rgba(0, 0, 0, 0.98)");
+  c.fillStyle = grad;
+  c.fillRect(0, 0, W, H);
+  c.restore();
+}
+
+// Stage 1: Authentic 3D Folded Red Ribbon 'N' Unfold (0.05s -> 1.25s)
+function drawNetflixRibbonN(T, scale, alpha) {
+  if (alpha <= 0.005) return;
+  c.save();
+  c.translate(CX, CY);
+  c.scale(scale, scale);
+  c.globalAlpha = cl(alpha, 0, 1);
+
+  var nW = 190, nH = 340, barW = 62;
+  var leftX = -nW / 2, rightX = nW / 2 - barW, topY = -nH / 2, botY = nH / 2;
+
+  // Stem 1: Left Vertical Pillar (rises bottom to top: 0.08s -> 0.45s)
+  var p1 = easeInOutCubic(seg(T, 0.08, 0.45));
+  if (p1 > 0) {
+    var g1 = c.createLinearGradient(leftX, botY, leftX, topY);
+    g1.addColorStop(0, "#7A0409");
+    g1.addColorStop(0.5, "#B20710");
+    g1.addColorStop(1, "#D40812");
+    c.fillStyle = g1;
+    var h1 = nH * p1;
+    c.fillRect(leftX, botY - h1, barW, h1);
+  }
+
+  // Stem 3: Right Vertical Pillar (rises bottom to top: 0.55s -> 0.92s)
+  var p3 = easeInOutCubic(seg(T, 0.55, 0.92));
+  if (p3 > 0) {
+    var g3 = c.createLinearGradient(rightX, botY, rightX, topY);
+    g3.addColorStop(0, "#B20710");
+    g3.addColorStop(1, "#7A0409");
+    c.fillStyle = g3;
+    var h3 = nH * p3;
+    c.fillRect(rightX, topY, barW, h3);
+  }
+
+  // Stem 2: Iconic Bright Scarlet Diagonal Folded Ribbon with Drop-Shadow (0.32s -> 0.78s)
+  var p2 = easeInOutCubic(seg(T, 0.32, 0.78));
+  if (p2 > 0) {
+    c.save();
+    // Deep cast shadow onto the vertical stems
+    c.shadowColor = "rgba(0, 0, 0, 0.85)";
+    c.shadowBlur = 28;
+    c.shadowOffsetX = 4;
+    c.shadowOffsetY = 8;
+
+    var g2 = c.createLinearGradient(leftX, topY, rightX + barW, botY);
+    g2.addColorStop(0.0, "#FF1E27");
+    g2.addColorStop(0.5, "#E50914");
+    g2.addColorStop(1.0, "#C20710");
+    c.fillStyle = g2;
+
+    var curRightX = leftX + (rightX - leftX) * p2;
+    var curBotY = topY + (botY - topY) * p2;
+
+    c.beginPath();
+    c.moveTo(leftX, topY);
+    c.lineTo(leftX + barW, topY);
+    c.lineTo(curRightX + barW, curBotY);
+    c.lineTo(curRightX, curBotY);
+    c.closePath();
+    c.fill();
+    c.restore();
+  }
+
+  c.restore();
+}
+
+// Stage 2: Full "NH BOX" Wordmark with Authentic Flat-Top & Parabolic Curved Bottom Arch
+function drawNetflixWordmarkArch(text, cx, cy, scale, alpha, extrusionDepth, lightSweep) {
+  if (alpha <= 0.005) return;
+
+  // Render crisp flat-top text to offscreen buffer and slice into 120 vertical strips
+  // so the bottom baseline curves smoothly into the true Netflix Cinema Arch!
+  if (!window.__nfWordmarkCanvas) {
+    var oc = document.createElement("canvas");
+    oc.width = 1200;
+    oc.height = 360;
+    var og = oc.getContext("2d");
+    og.font = "900 250px 'Bebas Neue', Impact, 'Arial Black', sans-serif";
+    og.textAlign = "center";
+    og.textBaseline = "middle";
+
+    var grad = og.createLinearGradient(0, 40, 0, 320);
+    grad.addColorStop(0.0, "#FF2630");
+    grad.addColorStop(0.25, "#E50914");
+    grad.addColorStop(0.80, "#B80710");
+    grad.addColorStop(1.0, "#85040A");
+    og.fillStyle = grad;
+    og.fillText(text, 600, 180);
+    window.__nfWordmarkCanvas = oc;
+  }
+
+  var src = window.__nfWordmarkCanvas;
+  var slices = 110;
+  var sliceW = src.width / slices;
+
+  c.save();
+  c.translate(cx, cy);
+  c.scale(scale, scale);
+  c.globalAlpha = cl(alpha, 0, 1);
+
+  // Volumetric red backlight halo behind wordmark
+  var halo = c.createRadialGradient(0, 0, 20, 0, 0, 560);
+  halo.addColorStop(0.0, "rgba(229, 9, 20, 0.42)");
+  halo.addColorStop(0.6, "rgba(150, 5, 10, 0.12)");
+  halo.addColorStop(1.0, "rgba(0, 0, 0, 0)");
+  c.fillStyle = halo;
+  c.fillRect(-650, -260, 1300, 520);
+
+  // 1. 3D Shadow Extrusion Behind Letters
+  if (extrusionDepth > 0.5) {
+    c.save();
+    for (var d = Math.floor(extrusionDepth); d >= 1; d -= 2) {
+      c.globalAlpha = alpha * 0.18;
+      c.drawImage(src, -600, -180 + d * 1.1, 1200, 360);
+    }
+    c.restore();
+  }
+
+  // 2. Slice-Mapped Parabolic Cinema Arch (Top stays flat, bottom arches upward at center!)
+  for (var i = 0; i < slices; i++) {
+    var sx = i * sliceW;
+    var normX = (sx + sliceW * 0.5 - 600) / 500; // -1.0 at edges, 0.0 at center
+    normX = cl(normX, -1.2, 1.2);
+
+    // Center compresses vertically from the bottom upward by 34px, edges stay full height
+    var archLift = 34 * (1 - normX * normX);
+    var destH = 360 - archLift;
+    var destY = -180; // Top edge stays razor-horizontal like real Netflix logo!
+
+    c.drawImage(src, sx, 0, sliceW + 0.8, 360, sx - 600, destY, sliceW + 0.8, destH);
+  }
+
+  // 3. Glossy Specular Light Sweep
+  if (lightSweep >= 0 && lightSweep <= 1.2) {
+    var swX = -650 + lightSweep * 1300;
+    c.save();
+    c.globalCompositeOperation = "screen";
+    var swG = c.createLinearGradient(swX - 90, -180, swX + 90, 180);
+    swG.addColorStop(0, "rgba(255,255,255,0)");
+    swG.addColorStop(0.5, "rgba(255,190,195,0.45)");
+    swG.addColorStop(1, "rgba(255,255,255,0)");
+    c.fillStyle = swG;
+    c.fillRect(-560, -140, 1120, 260);
+    c.restore();
+  }
+
+  c.restore();
+}
+
+// Stage 3: 260 Ultra-Fine Fiber-Optic Prism Spectrum Lines (3.10s -> 5.70s)
+function drawFiberOpticSpectrum(T, progress, alpha) {
+  if (alpha <= 0.005) return;
+  c.save();
+  c.globalCompositeOperation = "screen";
+
+  var focal = 550;
+  var camZ = progress * 2100;
+
+  for (var i = 0; i < PRISM_LINES.length; i++) {
+    var ln = PRISM_LINES[i];
+    var relZ = ((ln.z - camZ * ln.speed) % 1800 + 1800) % 1800;
+    if (relZ < 12) continue;
+
+    var scale = focal / relZ;
+    var px = CX + ln.x * scale;
+    var w = Math.max(1.2, ln.width * scale);
+    if (px + w < 0 || px - w > W) continue;
+
+    var vGrad = c.createLinearGradient(px, 0, px, H);
+    vGrad.addColorStop(0.0, "rgba(0,0,0,0)");
+    vGrad.addColorStop(0.18, ln.col);
+    vGrad.addColorStop(0.50, "#FFFFFF");
+    vGrad.addColorStop(0.82, ln.col);
+    vGrad.addColorStop(1.0, "rgba(0,0,0,0)");
+
+    c.globalAlpha = cl(ln.alpha * alpha * (1 - relZ / 1800), 0, 1);
+    c.fillStyle = vGrad;
+    c.fillRect(px - w / 2, 0, w, H);
+  }
+
+  c.restore();
+}
+
+function drawSubtitles(T) {
+  var cap = document.getElementById("cap");
+  if (cap && !cap.checked) return;
+  var cur = T < 4.0 ? PLAN[0] : PLAN[1];
+  var txt = SC[cur.i].vo;
+  var st = T - cur.start;
+  var a = cl(st / 0.3, 0, 1) * (1 - cl((st - (cur.len - 0.4)) / 0.4, 0, 1));
+  if (a <= 0.01) return;
+
+  c.save();
+  c.globalAlpha = a;
+  c.font = "600 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  c.textAlign = "center";
+  c.textBaseline = "middle";
+  var tw = c.measureText(txt).width + 44;
+  c.fillStyle = "rgba(8, 8, 12, 0.82)";
+  c.strokeStyle = "rgba(229, 9, 20, 0.5)";
+  c.lineWidth = 1.5;
+  c.fillRect(CX - tw / 2, H - 108, tw, 48);
+  c.strokeRect(CX - tw / 2, H - 108, tw, 48);
+  c.fillStyle = "#FFFFFF";
+  c.fillText(txt, CX, H - 84);
+  c.restore();
+}
+
+/* ==========================================================================
+   6. MASTER TIMELINE FRAME RENDERER: frameAt(T)
+   ========================================================================== */
+var prevLiveT = 2.15;
+
+function frameAt(T) {
+  c.fillStyle = "#000000";
+  c.fillRect(0, 0, W, H);
+
+  // Live TMDB Perspective Movie Wall subtly visible in background during wordmark & finale
+  var wallAlpha = T >= 1.22 && T < 3.4 ? seg(T, 1.22, 1.8) * (1 - seg(T, 2.8, 3.4)) * 0.65
+                : T >= 5.5 ? seg(T, 5.5, 6.4) * 0.75 : 0;
+  drawTMDBPerspectiveWall(T, wallAlpha);
+
+  // Subtle camera vibration on "DUM!" impact (1.22s -> 1.75s)
+  var sx = 0, sy = 0;
+  if (T >= 1.22 && T <= 1.75) {
+    var d = 1 - (T - 1.22) / 0.53;
+    sx = Math.sin((T - 1.22) * 52) * 10 * d;
+    sy = Math.cos((T - 1.22) * 60) * 7 * d;
+  }
+
+  c.save();
+  c.translate(sx, sy);
+
+  /* --- STAGE 1: 3D FOLDED RIBBON 'N' UNFOLD (0.05s -> 1.25s) --- */
+  if (T < 1.28) {
+    var nScale = 0.88 + 0.16 * easeOutCubic(seg(T, 0.05, 1.20));
+    var nAlpha = 1 - seg(T, 1.15, 1.28);
+    drawNetflixRibbonN(T, nScale, nAlpha);
+  }
+
+  /* --- STAGE 2: "TA-DUM!" FULL CURVED "NH BOX" WORDMARK LOCKUP & ZOOM (1.18s -> 3.65s) --- */
+  if (T >= 1.18 && T < 3.65) {
+    var wIn = seg(T, 1.18, 1.30);
+    var zoomStart = seg(T, 2.75, 3.60);
+    // Exponential hyper-zoom into the center 'B' pillar
+    var wScale = 0.96 - 0.06 * easeOutExpo(seg(T, 1.20, 1.90)) + easeInExpo(zoomStart) * 14.0;
+    var wAlpha = wIn * (1 - seg(T, 3.25, 3.60));
+    var extDepth = 18 * (1 - zoomStart);
+    var sweep = seg(T, 1.35, 2.55);
+    drawNetflixWordmarkArch("NH BOX", CX, CY, wScale, wAlpha, extDepth, sweep);
+  }
+
+  /* --- STAGE 3: 260 FIBER-OPTIC PRISM SPECTRUM HYPER-DRIVE (3.05s -> 5.75s) --- */
+  if (T >= 3.05 && T < 5.75) {
+    var spProg = seg(T, 3.05, 5.70);
+    var spAlpha = seg(T, 3.05, 3.45) * (1 - seg(T, 5.10, 5.70));
+    drawFiberOpticSpectrum(T, spProg, spAlpha);
+  }
+
+  /* --- STAGE 4: FINAL CINEMA LOCKUP & "A N   N H B O X   O R I G I N A L" (5.35s -> 8.50s) --- */
+  if (T >= 5.35) {
+    var fIn = easeOutCubic(seg(T, 5.35, 6.10));
+    var fSweep = seg(T, 5.60, 7.20);
+    drawNetflixWordmarkArch("NH BOX", CX, CY - 24, 0.88, fIn, 12, fSweep);
+
+    var tagA = easeOutCubic(seg(T, 5.75, 6.50));
+    c.save();
+    c.globalAlpha = tagA;
+    c.font = "800 23px 'Montserrat', sans-serif";
+    c.fillStyle = "#E5E7EB";
+    c.textAlign = "center";
+    try { c.letterSpacing = "14px"; } catch(e) {}
+    c.fillText("A N   N H B O X   O R I G I N A L", CX + 7, CY + 148);
+    c.restore();
+  }
+
+  c.restore();
+  drawSubtitles(T);
+
+  var te = document.getElementById("timing");
+  if (te) te.textContent = T.toFixed(2) + "s / " + TOTAL.toFixed(2) + "s [60 FPS]";
+  prevLiveT = T;
+}
+
+/* ==========================================================================
+   7. UI CONTROLS
+   ========================================================================== */
+var isPlaying = false, playStart = 0, rafId = null;
+var pvBtn = document.getElementById("pv"), replayBtn = document.getElementById("btnReplay");
+var scSel = document.getElementById("scSel"), fsBtn = document.getElementById("btnFs"), dlBtn = document.getElementById("dl");
+var stEl = document.getElementById("st");
+
+PLAN.forEach(function(p, i) {
+  var o = document.createElement("option");
+  o.value = p.start;
+  o.textContent = "Scene " + (i + 1) + ": " + (i === 0 ? "3D Ribbon N & Ta-Dum Arch" : "Prism Spectrum & TMDB Wall Finale");
+  scSel.appendChild(o);
+});
+
+function playAt(offset) {
+  getAudioContext();
+  isPlaying = true;
+  pvBtn.textContent = "⏸ Pause";
+  stEl.textContent = "Status: Playing Ultra-Realistic Netflix Intro...";
+  playStart = performance.now() - offset * 1000;
+
+  if (document.getElementById("sf").checked && actx && offset <= 0.1) {
+    scheduleNetflixAudio(actx, actx.currentTime - offset);
+  }
+
+  function loop() {
+    if (!isPlaying) return;
+    var t = (performance.now() - playStart) / 1000;
+    if (t >= TOTAL) { frameAt(TOTAL); stopPlay(); stEl.textContent = "Status: Completed."; return; }
+    frameAt(t);
+    rafId = requestAnimationFrame(loop);
+  }
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+function stopPlay() {
+  isPlaying = false;
+  pvBtn.textContent = "▶ Preview Chalao";
+  if (rafId) cancelAnimationFrame(rafId);
+}
+
+pvBtn.onclick = function() { isPlaying ? stopPlay() : playAt(0); };
+replayBtn.onclick = function() { stopPlay(); playAt(0); };
+scSel.onchange = function() { stopPlay(); playAt(parseFloat(this.value) || 0); };
+fsBtn.onclick = function() { !document.fullscreenElement ? cv.requestFullscreen() : document.exitFullscreen(); };
+dlBtn.onclick = function() {
+  stEl.textContent = "Status: Rendering 16-bit WAV...";
+  renderSfxWav(function(b) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    a.download = "nh_box_netflix_realistic_sfx.wav";
+    a.click();
+    stEl.textContent = "Status: WAV Downloaded!";
+  });
+};
+
+frameAt(2.15);
+</script>
+</body>
+</html>
